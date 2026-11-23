@@ -20,3 +20,23 @@ def register():
         return redirect(url_for("index"))
     return render_template("register.html", form=form)
 
+
+@bp.route("/login", methods=["GET", "POST"])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        session.clear()
+        user = User.objects.filter(email=form.email.data).first()
+        if user and user.check_password(form.password.data):
+            session["user_id"] = user.id
+            flash("Logged In", "success")
+        else:
+            flash("Invalid username and/or password", "danger")
+        return redirect(url_for("index"))
+    return render_template("login.html", form=form)
+
+@bp.route("/logout")
+def logout():
+    """Log user out"""
+    session.clear()
+    return redirect(url_for("index"))
