@@ -80,3 +80,32 @@ class DjangoORMDebugPanel(DebugPanel):
 
     def __init__(self, jinja_env, context):
         DebugPanel.__init__(self, jinja_env, context=context)
+
+        loader = ChoiceLoader([
+            jinja_env.loader,
+            PackageLoader(__name__, 'templates')
+        ])
+        self.jinja_env.loader = loader
+
+    @property
+    def has_content(self):
+        return bool(get_queries()) or not is_available()
+
+    def nav_title(self):
+        return _("Django ORM")
+
+    def nav_subtitle(self):
+        count = len(get_queries())
+
+        if not count and not is_available():
+            return "Unavailable"
+
+        return "%d %s" % (count, "query" if count == 1 else "queries")
+
+    def title(self):
+        return _("DjangORM queries")
+
+    def url(self):
+        return ""
+
+    def content(self):
