@@ -32,3 +32,21 @@ def dump_query(statement):
         return None
 
     try:
+        return query_signer().dumps(statement)
+    except TypeError:
+        return None
+
+
+def load_query(data):
+    try:
+        statement = query_signer().loads(data)
+    except (itsdangerous.BadSignature, TypeError):
+        abort(406)
+
+    # Make sure it is a select statement
+    if not is_select(statement):
+        abort(406)
+
+    return statement
+
+
