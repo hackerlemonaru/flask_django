@@ -109,3 +109,41 @@ class DjangoORMDebugPanel(DebugPanel):
         return ""
 
     def content(self):
+        queries = get_queries()
+        if not queries and not is_available():
+            return self.render(
+                "panels/djangoorm_error.html", {"django_orm_available": django_orm_available, "extension_used": extension_used(), "recording_enabled": recording_enabled()}
+            )
+
+        data = []
+        for query in queries:
+            data.append(
+                {
+                    "duration": float(query["time"]),
+                    "sql": format_sql(query["sql"], query["sql"]),
+                    'signed_query': dump_query(query["sql"]),
+                }
+            )
+        return self.render("panels/djangoorm.html", {"queries": data})
+
+
+# Panel views
+@module.route("/django/sql_select", methods=["GET", "POST"])
+@module.route("/django/sql_explain", methods=["GET", "POST"], defaults=dict(explain=True))
+def django_sql_select(explain=False):
+    statement = load_query(request.args["query"])
+    cursor = connection.cursor()
+    params = []
+
+    if explain:
+        if connection.vendor == "sqlite":
+            statement = "EXPLAIN QUERY PLAN\n%s" % statement
+        else:
+            statement = "EXPLAIN\n%s" % statement
+    result = cursor.execute(statement, params).fetchall()
+    headers = dict_factory(cursor)
+    return g.debug_toolbar.render(
+        "panels/djangoorm_select.html",
+        {"result": result, "headers": headers, "sql": format_sql(statement, statement), "duration": float(request.args["duration"])},
+    )
+
